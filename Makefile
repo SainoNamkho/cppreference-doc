@@ -110,6 +110,8 @@ install: all
 	# install the .qch (Qt Help) documentation
 	install -DT -m 644 "output/cppreference-doc-en-cpp.qch" \
 		"$(DESTDIR)$(docdir)/qch/cppreference-doc-en-cpp.qch"
+	install -DT -m 644 "output/cppreference-doc-en-c.qch" \
+		"$(DESTDIR)$(docdir)/qch/cppreference-doc-en-c.qch"
 
 uninstall:
 	rm -rf "$(DESTDIR)$(docdir)"
@@ -136,8 +138,10 @@ release: all
 
 	# zip qch
 	pushd "output"; \
-	tar c$(TAR_OPTION)f "../release/qch-book-$(VERSION).tar.$(TAR_FORMAT)" "cppreference-doc-en-cpp.qch"; \
-	zip -qr "../release/qch-book-$(VERSION).zip" "cppreference-doc-en-cpp.qch"; \
+	tar c$(TAR_OPTION)f "../release/qch-book-$(VERSION).tar.$(TAR_FORMAT)" \
+		"cppreference-doc-en-cpp.qch" "cppreference-doc-en-c.qch"; \
+	zip -qr "../release/qch-book-$(VERSION).zip" \
+		"cppreference-doc-en-cpp.qch" "cppreference-doc-en-c.qch"; \
 	popd
 
 #WORKER RULES
@@ -145,7 +149,7 @@ doc_html: output/reference
 
 doc_devhelp: output/cppreference-doc-en-c.devhelp2 output/cppreference-doc-en-cpp.devhelp2
 
-doc_qch: output/cppreference-doc-en-cpp.qch
+doc_qch: output/cppreference-doc-en-cpp.qch output/cppreference-doc-en-c.qch
 
 doc_doxygen: output/cppreference-doxygen-web.tag.xml output/cppreference-doxygen-local.tag.xml
 
@@ -172,7 +176,7 @@ output/cppreference-doc-en-cpp.devhelp2:	\
 	./fix_devhelp-links.py "output/devhelp-index-cpp.xml" \
 		"output/cppreference-doc-en-cpp.devhelp2"
 
-#build the .qch (QT help) file
+#build the .qch (QT help) files
 output/cppreference-doc-en-cpp.qch: output/qch-help-project-cpp.xml
 	#qhelpgenerator only works if the project file is in the same directory as the documentation
 	cp "output/qch-help-project-cpp.xml" "output/reference_cssless/qch.xml"
@@ -187,19 +191,45 @@ output/qch-help-project-cpp.xml: \
 		output/cppreference-doc-en-cpp.devhelp2 \
 		output/reference_cssless
 	#build the file list
-	echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><files>" > "output/qch-files.xml"
+	echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><files>" > "output/qch-files-cpp.xml"
 
 	pushd "output/reference_cssless" > /dev/null; \
 	find . -type f -not -iname "*.ttf" \
-		-exec echo "<file>"'{}'"</file>" \; | LC_ALL=C sort >> "../qch-files.xml" ; \
+		-exec echo "<file>"'{}'"</file>" \; | LC_ALL=C sort >> "../qch-files-cpp.xml" ; \
 	popd > /dev/null
 
-	echo "</files>" >> "output/qch-files.xml"
+	echo "</files>" >> "output/qch-files-cpp.xml"
 
 	#create the project (copies the file list)
 	./devhelp2qch.py --src=output/cppreference-doc-en-cpp.devhelp2 \
 		--dst=output/qch-help-project-cpp.xml \
-		--virtual_folder=cpp --file_list=output/qch-files.xml
+		--virtual_folder=cpp --file_list=output/qch-files-cpp.xml
+
+output/cppreference-doc-en-c.qch: output/qch-help-project-c.xml
+	#qhelpgenerator only works if the project file is in the same directory as the documentation
+	cp "output/qch-help-project-c.xml" "output/reference/qch.xml"
+
+	pushd "output/reference" > /dev/null; \
+	$(qhelpgenerator) "qch.xml" -o "../cppreference-doc-en-c.qch"; \
+	popd > /dev/null
+
+	rm -f "output/reference/qch.xml"
+
+output/qch-help-project-c.xml: output/cppreference-doc-en-c.devhelp2
+	#build the file list
+	echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><files>" > "output/qch-files-c.xml"
+
+	pushd "output/reference" > /dev/null; \
+	find . -path "*/cpp*" -prune -o -type f -not -iname "*.ttf" \
+		-exec echo "<file>"'{}'"</file>" \; | LC_ALL=C sort >> "../qch-files-c.xml" ; \
+	popd > /dev/null
+
+	echo "</files>" >> "output/qch-files-c.xml"
+
+	#create the project (copies the file list)
+	./devhelp2qch.py --src=output/cppreference-doc-en-c.devhelp2 \
+		--dst=output/qch-help-project-c.xml \
+		--virtual_folder=c --file_list=output/qch-files-c.xml
 
 # build doxygen tag file
 output/cppreference-doxygen-local.tag.xml: 		\
