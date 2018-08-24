@@ -19,8 +19,21 @@
 
 from commands.preprocess import *
 import argparse
+from concurrent.futures import ProcessPoolExecutor
 import os
 import shutil
+
+worker_rename_map = None
+worker_root = None
+
+def initworker(root, rename_map):
+    global worker_rename_map
+    worker_rename_map = rename_map
+    global worker_root
+    worker_root = root
+
+def process_file(fn):
+    preprocess_html_file(worker_root, fn, worker_rename_map)
 
 def main():
     parser = argparse.ArgumentParser(prog='preprocess.py')
@@ -41,8 +54,9 @@ def main():
     rename_files(rename_map)
 
     # clean the html files
-    for fn in find_html_files(root):
-        preprocess_html_file(root, fn, rename_map)
+    with ProcessPoolExecutor(initializer=initworker, initargs=(root, rename_map)) as executor:
+        for fn in find_html_files(root):
+            executor.submit(process_file, fn)
 
     # append css modifications
 
