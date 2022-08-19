@@ -2,10 +2,10 @@ name: get source
 
 on:
   schedule:
-    - cron: '35 17 19 8 *'
+    - cron: '47 17 19 8 *'
     
 jobs:
-  get_source:
+  build:
     runs-on: ubuntu-latest
     steps:
       - run: make source
