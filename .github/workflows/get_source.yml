@@ -2,7 +2,7 @@ name: get source
 
 on:
   schedule:
-    - cron: '47 17 19 8 *'
+    - cron: '10 18 19 8 *'
     
 jobs:
   build:
